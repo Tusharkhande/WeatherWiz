@@ -17,30 +17,39 @@ import {debounce} from 'lodash';
 import {fetchLocations, fetchWeatherForecast} from '../api/weather';
 import {weatherImages} from '../constants';
 import * as Progress from 'react-native-progress';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [locations, setLocations] = useState([]);
   const [weather, setWeather] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const handleLocation = loc => {
     console.log(loc);
+    setIsSearching(false);
     setLoading(true);
     setLocations([]);
     setShowSearch(false);
     fetchWeatherForecast({cityName: loc.name, days: 7}).then(data => {
       console.log('forecast for ', loc.name, ' : ', data);
-      setWeather(data);
+      if (data === null) {
+        ToastAndroid.show('Error fetching data', ToastAndroid.SHORT);
+      } else {
+        setWeather(data);
+      }
       setLoading(false);
     });
   };
 
   const handleSearch = value => {
     console.log(value);
+    setIsSearching(true);
     if (value.length > 2) {
       fetchLocations({cityName: value}).then(data => {
         console.log(data);
+        setIsSearching(false);
         setLocations(data);
       });
     }
@@ -53,10 +62,10 @@ const HomeScreen = () => {
   const fetchMyWeatherData = async () => {
     setLoading(true);
     fetchWeatherForecast({cityName: 'Pune', days: 7}).then(data => {
-      console.log('forecast for Lagos : ', data);
-      if(data === null){
+      console.log('forecast for Pune : ', data);
+      if (data === null) {
         ToastAndroid.show('Error fetching data', ToastAndroid.SHORT);
-      }else{
+      } else {
         setWeather(data);
       }
       setLoading(false);
@@ -71,13 +80,17 @@ const HomeScreen = () => {
       <StatusBar barStyle="light-content" hidden />
       <ImageBackground
         resizeMode="cover"
-        source={require('../../assets/images/bg2.jpeg')}
+        source={require('../../assets/images/bg4.jpg')}
         className="absolute h-full w-full"
         blurRadius={70}
       />
       {loading ? (
-        <View className='flex-1 flex-row justify-center items-center'>
-          <Progress.CircleSnail color={[ 'blue','red','green']} size={100} thickness={5}/>
+        <View className="flex-1 flex-row justify-center items-center">
+          <Progress.CircleSnail
+            color={['blue', 'red', 'green']}
+            size={100}
+            thickness={5}
+          />
         </View>
       ) : (
         <SafeAreaView className="flex flex-1">
@@ -89,18 +102,27 @@ const HomeScreen = () => {
               {showSearch ? (
                 <TextInput
                   onChangeText={handleTextDebounce}
-                  placeholder="Search City (Enter atleast 3 chars)"
+                  placeholder="Search City"
                   placeholderTextColor={'lightgray'}
                   className="pl-6 h-10 flex-1 text-base text-white"
                 />
               ) : null}
-              <TouchableOpacity
-                className="rounded-full p-3 m-1 bg-slate-400"
-                onPress={() => setShowSearch(!showSearch)}>
-                <MagnifyingGlassIcon
-                  size={'25'}
-                  color="white"></MagnifyingGlassIcon>
-              </TouchableOpacity>
+              {isSearching ? (
+                <Progress.CircleSnail
+                  color='#0095b6'
+                  size={40}
+                  thickness={2}
+                  className="p-3"
+                />
+              ) : (
+                <TouchableOpacity
+                  className="rounded-full p-3 m-1 bg-slate-400"
+                  onPress={() => setShowSearch(!showSearch)}>
+                  <MagnifyingGlassIcon
+                    size={'25'}
+                    color="white"></MagnifyingGlassIcon>
+                </TouchableOpacity>
+              )}
             </View>
 
             {locations.length > 0 && showSearch ? (
