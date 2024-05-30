@@ -37,7 +37,9 @@ const HomeScreen = () => {
       if (data === null) {
         ToastAndroid.show('Error fetching data', ToastAndroid.SHORT);
       } else {
+        storeData('city', loc.name);
         setWeather(data);
+        console.log(data?.forecast?.forecastday)
       }
       setLoading(false);
     });
@@ -60,12 +62,16 @@ const HomeScreen = () => {
   }, []);
 
   const fetchMyWeatherData = async () => {
+    let myCity = await getData('city');
+    let cityName = myCity ? myCity : 'Pune';
+
     setLoading(true);
-    fetchWeatherForecast({cityName: 'Pune', days: 7}).then(data => {
-      console.log('forecast for Pune : ', data);
+    fetchWeatherForecast({cityName, days: '7'}).then(data => {
+      console.log('forecast', data);
       if (data === null) {
         ToastAndroid.show('Error fetching data', ToastAndroid.SHORT);
       } else {
+        console.log(data?.forecast?.forecastday)
         setWeather(data);
       }
       setLoading(false);
@@ -74,6 +80,25 @@ const HomeScreen = () => {
   const handleTextDebounce = useCallback(debounce(handleSearch, 1200), []);
 
   const {current, location} = weather;
+
+  const storeData = async (key, value) => {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  const getData = async (key) => {
+    try {
+      const value = await AsyncStorage.getItem(key);
+      if (value !== null) {
+        return value;
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   return (
     <View className="flex-1 relative">
@@ -210,7 +235,7 @@ const HomeScreen = () => {
                   className="h-6 w-6"
                 />
                 <Text className="text-white text-base font-semibold">
-                  6:05 AM
+                  {weather?.forecast?.forecastday?.[0]?.astro?.sunrise}
                 </Text>
               </View>
             </View>
@@ -231,17 +256,18 @@ const HomeScreen = () => {
                 let options = {weekday: 'long'};
                 let dayName = date.toLocaleDateString('en-US', options);
                 dayName = dayName.split(',')[0];
+                console.log(item?.day?.condition?.text)
                 return (
                   <View
                     key={idx}
                     className="flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4 bg-slate-400 bg-opacity-80">
                     <Image
-                      source={require('../../assets/images/heavyrain.png')}
+                      source={weatherImages[item?.day?.condition?.text]? weatherImages[item?.day?.condition?.text] : weatherImages['Clear']}
                       className="h-12 w-12"
                     />
                     <Text className="text-white ">{dayName}</Text>
                     <Text className="text-white text-xl">
-                      {item?.avgtemp_c}&#176;
+                      {item?.day?.avgtemp_c}&#176;
                     </Text>
                   </View>
                 );
